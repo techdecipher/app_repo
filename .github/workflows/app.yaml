@@ -28,17 +28,16 @@ jobs:
           java-version: '17'
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v1
+        uses: SonarSource/sonarcloud-github-action@v2
         with:
           projectBaseDir: .
           args: >
             -Dsonar.organization=pranav08
             -Dsonar.projectKey=Pranav08_app_repo
             -Dsonar.sources=.
-            -Dsonar.host.url=https://sonarcloud.io
-            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
