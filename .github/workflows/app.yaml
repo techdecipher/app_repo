@@ -37,8 +37,8 @@ jobs:
       - name: Run SonarScanner
         run: |
           sonar-scanner \
-            -Dsonar.projectKey=techdecipher/app_repo \
-            -Dsonar.organization=techdecipher \
+            -Dsonar.projectKey=Pranav08/app_repo \
+            -Dsonar.organization=Pranav08 \
             -Dsonar.sources=. \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
