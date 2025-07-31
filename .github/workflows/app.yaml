@@ -34,14 +34,18 @@ jobs:
           sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
           echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
 
-      - name: Run SonarScanner
-        run: |
-          sonar-scanner \
-            -Dsonar.projectKey=Pranav08/app_repo \
-            -Dsonar.organization=Pranav08 \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=https://sonarcloud.io \
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v1
+        with:
+          projectBaseDir: .
+          args: >
+            -Dsonar.organization=pranav08
+            -Dsonar.projectKey=Pranav08_app_repo
+            -Dsonar.sources=.
+            -Dsonar.host.url=https://sonarcloud.io
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
