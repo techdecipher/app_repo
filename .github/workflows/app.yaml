@@ -27,14 +27,21 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v1
-        with:
-          projectBaseDir: .
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_PROJECT_KEY: ${{ github.repository }}
-          SONAR_ORGANIZATION: techdecipher  # Replace this
+      - name: Install SonarScanner CLI
+        run: |
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+          unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+          sudo mv sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner
+          echo "/opt/sonar-scanner/bin" >> $GITHUB_PATH
+
+      - name: Run SonarScanner
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ github.repository }} \
+            -Dsonar.organization=techdecipher \
+            -Dsonar.sources=. \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
