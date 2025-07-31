@@ -21,6 +21,12 @@ jobs:
           pip install flake8
           flake8 app.py
 
+      - name: Set up Java 17 for SonarCloud
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: SonarCloud Scan
         uses: SonarSource/sonarcloud-github-action@v1
         with:
