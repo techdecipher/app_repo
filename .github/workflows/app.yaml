@@ -78,6 +78,11 @@ jobs:
       - name: Deploy to EKS with Helm
         run: |
           helm upgrade --install flask-app charts/flask-app \
+            --namespace default \
+            --create-namespace \
             --set image.repository=${{ secrets.ECR_REPO }} \
-            --set image.tag=${{ github.sha }}
+            --set image.tag=${{ github.sha }} \
+            --set service.type=LoadBalancer \
+            --wait
+
 
