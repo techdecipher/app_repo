@@ -1,88 +1,39 @@
-name: Flask App CI/CD
+name: CI/CD to EC2 with Docker
 
 on:
   push:
     branches: [main]
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout code
+      - name: Checkout Code
         uses: actions/checkout@v2
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v2
         with:
-          python-version: '3.9'
+          python-version: 3.9
 
-      - name: Lint with flake8
-        run: |
-          pip install flake8
-          flake8 app.py
-
-      - name: Set up Java 17 for SonarCloud
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        with:
-          projectBaseDir: .
-          args: >
-            -Dsonar.organization=pranav08
-            -Dsonar.projectKey=techdecipher_app_repo
-            -Dsonar.sources=.
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-
-      - name: Log in to Amazon ECR
+      - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, Tag, and Push Docker Image
+      - name: Build and Push Docker Image
         run: |
           IMAGE_TAG=${{ github.sha }}
           docker build -t ${{ secrets.ECR_REPO }}:$IMAGE_TAG .
           docker push ${{ secrets.ECR_REPO }}:$IMAGE_TAG
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v3
+      - name: SSH and Deploy to EC2
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          version: 'latest'
-
-      - name: Set up Helm
-        uses: azure/setup-helm@v3
-        with:
-          version: 'latest'
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Update Kubeconfig
-        run: aws eks update-kubeconfig --region us-east-1 --name flask-eks-cluster
-
-      - name: Deploy to EKS with Helm
-        run: |
-          helm upgrade --install flask-app charts/flask-app \
-            --namespace default \
-            --create-namespace \
-            --set image.repository=${{ secrets.ECR_REPO }} \
-            --set image.tag=${{ github.sha }} \
-            --set service.type=LoadBalancer \
-            --wait
-
-
+          host: ${{ secrets.EC2_PUBLIC_IP }}
+          username: ubuntu
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            docker pull ${{ secrets.ECR_REPO }}:${{ github.sha }}
+            docker stop flask || true
+            docker rm flask || true
+            docker run -d --name flask -p 80:5000 ${{ secrets.ECR_REPO }}:${{ github.sha }}

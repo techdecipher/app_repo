@@ -1,5 +1,0 @@
-apiVersion: v2
-name: flask-app
-description: A simple Flask app deployed via Helm
-version: 0.1.0
-
