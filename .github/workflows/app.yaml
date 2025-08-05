@@ -39,7 +39,9 @@ jobs:
           username: ubuntu
           key: ${{ secrets.EC2_SSH_KEY }}
           script: |
+            aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REPO }}
             docker pull ${{ secrets.ECR_REPO }}:${{ github.sha }}
             docker stop flask || true
             docker rm flask || true
             docker run -d --name flask -p 80:5000 ${{ secrets.ECR_REPO }}:${{ github.sha }}
+
