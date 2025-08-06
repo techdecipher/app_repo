@@ -42,4 +42,15 @@ jobs:
       run: |
         docker push $ECR_REPO:$TAG
         docker push $ECR_REPO:latest
+    
+    - name: Update kubeconfig for EKS
+      run: |
+        aws eks update-kubeconfig --name ${{ secrets.CLUSTER_NAME }} --region ${{ env.REGION }}
+
+    - name: Deploy with Helm to EKS
+      run: |
+        helm upgrade --install flask-app ./helm/flask-app \
+          --set image.repository=${{ secrets.ECR_REPO_URI }} \
+          --set image.tag=$TAG \
+          --set service.type=LoadBalancer
 
