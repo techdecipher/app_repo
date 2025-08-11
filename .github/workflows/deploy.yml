@@ -53,9 +53,9 @@ jobs:
           "docker run -d --name site -p 80:80 --restart unless-stopped $ECR_REPO_URI:$IMAGE_TAG",
           "docker image prune -f || true",
           "docker ps --format \\\"table {{.ID}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}\\\""
-        ]
-      }
-    }
-    EOF
+                      ]
+                 }
+        }
+        EOF
 
-    aws ssm send-command --region "$AWS_REGION" --cli-input-json file://payload.json
+        aws ssm send-command --region "$AWS_REGION" --cli-input-json file://payload.json
