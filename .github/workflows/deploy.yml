@@ -36,22 +36,26 @@ jobs:
 
     - name: Deploy on EC2 via SSM
       run: |
-        REGISTRY="${ECR_REPO_URI%/*}"
-        aws ssm send-command \
-          --region "$AWS_REGION" \
-          --instance-ids "$EC2_INSTANCE_ID" \
-          --document-name "AWS-RunShellScript" \
-          --comment "Deploy website container" \
-          --parameters commands="$(cat <<'EOS'
         set -e
-        # login to ECR (registry only)
-        aws ecr get-login-password --region ${AWS_REGION} | docker login --username AWS --password-stdin ${REGISTRY}
-        # pull & run new image
-        docker pull ${ECR_REPO_URI}:${IMAGE_TAG}
-        docker rm -f site || true
-        docker run -d --name site -p 80:80 --restart unless-stopped ${ECR_REPO_URI}:${IMAGE_TAG}
-        # optional cleanup
-        docker image prune -f || true
-        docker ps --format "table {{.ID}}\t{{.Image}}\t{{.Status}}\t{{.Ports}}"
-        EOS
-        )"
+        REGISTRY="${ECR_REPO_URI%/*}"
+
+        cat > payload.json <<EOF
+        {
+          "DocumentName": "AWS-RunShellScript",
+          "Comment": "Deploy website container",
+          "InstanceIds": ["$EC2_INSTANCE_ID"],
+          "Parameters": {
+          "commands": [
+          "set -e",
+          "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY",
+          "docker pull $ECR_REPO_URI:$IMAGE_TAG",
+          "docker rm -f site || true",
+          "docker run -d --name site -p 80:80 --restart unless-stopped $ECR_REPO_URI:$IMAGE_TAG",
+          "docker image prune -f || true",
+          "docker ps --format \\\"table {{.ID}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}\\\""
+        ]
+      }
+    }
+    EOF
+
+    aws ssm send-command --region "$AWS_REGION" --cli-input-json file://payload.json
