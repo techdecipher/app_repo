@@ -34,19 +34,19 @@ jobs:
         docker push $ECR_REPO_URI:$IMAGE_TAG
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-   - name: Deploy on EC2 via SSM
-     run: |
-       set -e
-       REGISTRY="${ECR_REPO_URI%/*}"
+    - name: Deploy on EC2 via SSM
+      run: |
+        set -e
+        REGISTRY="${ECR_REPO_URI%/*}"
 
-       # Write JSON template literally (no expansion)
-       cat > payload.json <<'JSON'
-       {
-         "DocumentName": "AWS-RunShellScript",
-         "Comment": "Deploy website container",
-         "InstanceIds": ["EC2_INSTANCE_ID_PLACEHOLDER"],
-         "Parameters": {
-         "commands": [
+        # Write JSON template literally (no expansion)
+        cat > payload.json <<'JSON'
+        {
+          "DocumentName": "AWS-RunShellScript",
+          "Comment": "Deploy website container",
+          "InstanceIds": ["EC2_INSTANCE_ID_PLACEHOLDER"],
+          "Parameters": {
+          "commands": [
             "set -e",
             "aws ecr get-login-password --region AWS_REGION_PLACEHOLDER | docker login --username AWS --password-stdin ECR_REGISTRY_PLACEHOLDER",
             "docker pull ECR_REPO_URI_PLACEHOLDER:IMAGE_TAG_PLACEHOLDER",
