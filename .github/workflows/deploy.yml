@@ -34,28 +34,39 @@ jobs:
         docker push $ECR_REPO_URI:$IMAGE_TAG
         echo "IMAGE_TAG=$IMAGE_TAG" >> $GITHUB_ENV
 
-    - name: Deploy on EC2 via SSM
-      run: |
-        set -e
-        REGISTRY="${ECR_REPO_URI%/*}"
+   - name: Deploy on EC2 via SSM
+     run: |
+       set -e
+       REGISTRY="${ECR_REPO_URI%/*}"
 
-        cat > payload.json <<EOF
-        {
-          "DocumentName": "AWS-RunShellScript",
-          "Comment": "Deploy website container",
-          "InstanceIds": ["$EC2_INSTANCE_ID"],
-          "Parameters": {
-          "commands": [
-          "set -e",
-          "aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $REGISTRY",
-          "docker pull $ECR_REPO_URI:$IMAGE_TAG",
-          "docker rm -f site || true",
-          "docker run -d --name site -p 80:80 --restart unless-stopped $ECR_REPO_URI:$IMAGE_TAG",
-          "docker image prune -f || true",
-          "docker ps --format \\\"table {{.ID}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}\\\""
-                      ]
-                 }
+       # Write JSON template literally (no expansion)
+       cat > payload.json <<'JSON'
+       {
+         "DocumentName": "AWS-RunShellScript",
+         "Comment": "Deploy website container",
+         "InstanceIds": ["EC2_INSTANCE_ID_PLACEHOLDER"],
+         "Parameters": {
+         "commands": [
+            "set -e",
+            "aws ecr get-login-password --region AWS_REGION_PLACEHOLDER | docker login --username AWS --password-stdin ECR_REGISTRY_PLACEHOLDER",
+            "docker pull ECR_REPO_URI_PLACEHOLDER:IMAGE_TAG_PLACEHOLDER",
+            "docker rm -f site || true",
+            "docker run -d --name site -p 80:80 --restart unless-stopped ECR_REPO_URI_PLACEHOLDER:IMAGE_TAG_PLACEHOLDER",
+            "docker image prune -f || true",
+            "docker ps --format \"table {{.ID}}\\t{{.Image}}\\t{{.Status}}\\t{{.Ports}}\""
+             ]
+           }
         }
-        EOF
+        JSON
 
-        aws ssm send-command --region "$AWS_REGION" --cli-input-json file://payload.json
+        # Substitute placeholders safely
+        sed -i "s#EC2_INSTANCE_ID_PLACEHOLDER#${EC2_INSTANCE_ID}#" payload.json
+        sed -i "s#AWS_REGION_PLACEHOLDER#${AWS_REGION}#" payload.json
+        sed -i "s#ECR_REGISTRY_PLACEHOLDER#${REGISTRY}#" payload.json
+        sed -i "s#ECR_REPO_URI_PLACEHOLDER#${ECR_REPO_URI}#" payload.json
+        sed -i "s#IMAGE_TAG_PLACEHOLDER#${IMAGE_TAG}#" payload.json
+
+        # Validate JSON (optional)
+        cat payload.json
+
+        aws ssm send-command --region "${AWS_REGION}" --cli-input-json file://payload.json
